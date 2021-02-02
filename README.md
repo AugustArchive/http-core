@@ -7,4 +7,4 @@ $ npm i @augu/http
 ```
 
 ## License
-**@augu/http-core** is released under MIT License. :)
+**@augu/http** is released under MIT License. :)

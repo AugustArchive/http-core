@@ -20,4 +20,59 @@
  * SOFTWARE.
  */
 
-export default class RequestHandler {}
+import type { Request, Response } from 'express';
+import { Collection } from '@augu/collections';
+
+interface Ratelimit {
+  remaining: number;
+  resetTime: number;
+  ip: string;
+}
+
+/**
+ * Handler for handling all requests from a endpoint listed in a {@link https://docs.floofy.dev/http/classes#class-HttpServer HttpServer}.
+ *
+ * This class handles ratelimiting, type-safe query / path parameters, request body payloads, etc. This
+ * is the heart and soul of `@augu/http`. This is auto-injected when you construct a new [HttpServer] singleton.
+ */
+export default class RequestHandler {
+  #purgeInterval: NodeJS.Timer;
+  #ratelimits: Collection<string, Ratelimit>;
+  #server: any;
+
+  /**
+   * Creates a new [RequestHandler] instance
+   * @param server The [HttpServer] to use
+   */
+  constructor(server: any) {
+    // We use `.unref` to not keep the event loop awake
+    // to call RequestHandler#purge.
+    this.#purgeInterval = setInterval(() => this.purge(), 30000).unref(); // todo: make this configurable
+    this.#ratelimits = new Collection();
+    this.#server = server;
+  }
+
+  private purge() {
+    this.#server.log('RequestHandler', `Cleaning up ${this.#ratelimits.size} records...`);
+
+    for (const record of this.#ratelimits.keys()) this.#ratelimits.delete(record);
+  }
+
+  /**
+   * Disposes this request handler, this is called with {@link https://docs.floofy.dev/http/classes#HttpServer-close #close} method.
+   */
+  dispose() {
+    this.#server.log('RequestHandler', 'Disposing this singleton');
+    clearInterval(this.#purgeInterval);
+  }
+
+  /**
+   * Handles a request from Express
+   * @param req The request
+   * @param res The response
+   * @param route The route that was found from a specific {@link https://docs.floofy.dev/http/classes#class-Router Router}
+   */
+  handle(req: Request, res: Response, route: any) {
+    // todo: stuff lol
+  }
+}

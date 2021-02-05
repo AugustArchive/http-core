@@ -21,16 +21,16 @@
  */
 
 import { Collection } from '@augu/collections';
+import { headers } from './middleware';
 import EventBus from './EventBus';
 import express from 'express';
 import Router from './Router';
 import https from 'https';
 import http from 'http';
-import { headers } from './middleware';
 
 type ExpressMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => void;
 
-interface HttpServerOptions {
+export interface HttpServerOptions {
   purgeTimeout?: number;
   middleware?: ExpressMiddleware[];
   routes?: string;
@@ -39,7 +39,7 @@ interface HttpServerOptions {
   ssl?: HttpSSLCertificates;
 }
 
-interface Network {
+export interface Network {
   type: 'network' | 'local' | 'sock';
   host: string;
 }
@@ -51,7 +51,9 @@ interface HttpServerEvents {
   error(error: Error): void;
 }
 
-interface HttpSSLCertificates {
+export interface HttpSSLCertificates {
+  cert: string;
+  key: string;
   ca?: string;
 }
 
@@ -86,10 +88,7 @@ export default class HttpServer extends EventBus<HttpServerEvents> {
     this.options = merge<HttpServerOptions>(options!, {
       purgeTimeout: 30000,
       middleware: [headers()],
-      routes: undefined,
-      host: undefined,
-      port: this._findAvailablePort(),
-      ssl: {}
+      port: 3621, // furries for the win! (im gonna get shit for this arent i, maybe?)
     });
   }
 }

@@ -20,6 +20,37 @@
  * SOFTWARE.
  */
 
+import { promises as fs } from 'fs';
+import { join } from 'path';
+
+/**
+ * Asynchronouslly read a directory recursively if any directories
+ * are hit. [fs.readdir] does the job but doesn't recursively
+ * add them in the array once fetched, it's just the directory name,
+ * not the contents of that directory.
+ *
+ * @param path The path to get all files from
+ */
+async function readdir(path: string) {
+  let results: string[] = [];
+  const files = await fs.readdir(path);
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const rawPath = join(path, file);
+    const stats = await fs.lstat(file);
+
+    if (stats.isDirectory()) {
+      const items = await readdir(rawPath);
+      results = results.concat(items);
+    } else {
+      results.push(rawPath);
+    }
+  }
+
+  return results;
+}
+
 /** Represents a manager for handling routing */
 export default class EndpointManager {
   /**

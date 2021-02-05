@@ -38,6 +38,7 @@ interface EndpointRequirement {
 }
 
 type EndpointRunFunction = (this: any, req: Request, res: Response) => void | Promise<void>;
+export type IEndpointRunFunc = (req: Request, res: Response) => void | Promise<void>;
 
 /** Represents a endpoint from a {@link https://docs.floofy.dev/http/classes#class-Router Router} instance */
 export default class Endpoint {

@@ -20,4 +20,76 @@
  * SOFTWARE.
  */
 
-export default class HttpServer {}
+import { Collection } from '@augu/collections';
+import EventBus from './EventBus';
+import express from 'express';
+import Router from './Router';
+import https from 'https';
+import http from 'http';
+import { headers } from './middleware';
+
+type ExpressMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => void;
+
+interface HttpServerOptions {
+  purgeTimeout?: number;
+  middleware?: ExpressMiddleware[];
+  routes?: string;
+  host?: string;
+  port?: number;
+  ssl?: HttpSSLCertificates;
+}
+
+interface Network {
+  type: 'network' | 'local' | 'sock';
+  host: string;
+}
+
+interface HttpServerEvents {
+  [x: string]: any; // fuck you
+
+  listening(networks: Network[]): void;
+  error(error: Error): void;
+}
+
+interface HttpSSLCertificates {
+  ca?: string;
+}
+
+function merge<T extends object>(given: T, def: T) {
+  if (!given) return def;
+  for (const key in def) {
+    if (
+      !Object.hasOwnProperty.call(given, key) ||
+      given[key] === undefined
+    ) given[key] = def[key];
+
+    if (given[key] === Object(given[key]))
+      given[key] = merge(def[key as string], given[key]);
+  }
+
+  return given;
+}
+
+/**
+ * Represents a server to interact with the world!
+ */
+export default class HttpServer extends EventBus<HttpServerEvents> {
+  public requests: any;
+  public routers: Collection<string, Router>;
+  public options: HttpServerOptions;
+
+  constructor(options?: HttpServerOptions) {
+    super();
+
+    this.requests = null;
+    this.routers = new Collection();
+    this.options = merge<HttpServerOptions>(options!, {
+      purgeTimeout: 30000,
+      middleware: [headers()],
+      routes: undefined,
+      host: undefined,
+      port: this._findAvailablePort(),
+      ssl: {}
+    });
+  }
+}

@@ -21,7 +21,22 @@
  */
 
 import { promises as fs } from 'fs';
+import { NextHttpServer } from '../next';
+import { getReferences } from '../decorators';
+import type HttpServer from '../HttpServer';
+import { Collection } from '@augu/collections';
 import { join } from 'path';
+import Router from '../Router';
+
+interface Ctor<T> {
+  new (...args: any[]): T;
+
+  default?: Ctor<T> & { default: never };
+}
+
+function isNextHttp(x: unknown): x is NextHttpServer {
+  return x instanceof NextHttpServer && typeof x.express !== 'undefined';
+}
 
 /**
  * Asynchronouslly read a directory recursively if any directories
@@ -53,15 +68,72 @@ async function readdir(path: string) {
 
 /** Represents a manager for handling routing */
 export default class EndpointManager {
+  public routers: Collection<string, Router>;
+
+  #directory: string;
+  #server: HttpServer | NextHttpServer;
+
   /**
    * Constructs a new [EndpointManager] instance
    * @param directory The directory
    */
-  constructor(directory: string) {
-    // this isn't based
+  constructor(server: HttpServer | NextHttpServer, directory: string) {
+    this.#directory = directory;
+    this.routers = new Collection();
+    this.#server = server;
+  }
+
+  private debug(title: string, message: string) {
+    // @ts-ignore yea no thanks
+    this.#server.emit('debug', `[${title}] ${message}`);
   }
 
   async load() {
-    // you are based <3
+    this.debug('EndpointManager', `Loading endpoints in '${this.#directory}'...`);
+
+    // Check the statistics of the directory, doesn't de-reference symbolic links
+    const stats = await fs.lstat(this.#directory);
+    if (!stats.isDirectory()) {
+      this.debug('EndpointManager', `Path ${this.#directory} was not a directory.`);
+      return;
+    }
+
+    // Get a list of routers
+    const files = await readdir(this.#directory);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const ctor: Ctor<Router> = await import(file);
+      const router = (ctor.default ? new ctor.default() : new ctor()).init(this.#server as any);
+
+      const references = getReferences(router);
+      for (let i = 0; i < references.length; i++) {
+        const endpoint = references[i];
+        const server = isNextHttp(this.#server) ? this.#server.express : this.#server.app;
+
+        server[endpoint.method](endpoint.path, async (req, res) => {
+          try {
+            await this.#server.requests.handle(req, res, endpoint);
+          } catch(ex) {
+            // @ts-ignore it exists ok
+            this.#server.emit('error', ex);
+          }
+        });
+      }
+
+      for (const endpoint of router.routes.values()) {
+        const server = isNextHttp(this.#server) ? this.#server.express : this.#server.app;
+
+        server[endpoint.method](endpoint.path, async (req, res) => {
+          try {
+            await this.#server.requests.handle(req, res, endpoint);
+          } catch(ex) {
+            // @ts-ignore it exists ok
+            this.#server.emit('error', ex);
+          }
+        });
+      }
+
+      this.routers.set(router.prefix, router);
+    }
   }
 }

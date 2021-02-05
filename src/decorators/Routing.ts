@@ -57,7 +57,6 @@ export default function Route(path: string, method: 'get' | 'post' | 'delete' | 
       parameters: options?.parameters,
       method,
       path,
-      body: options?.body,
       run: descriptor.value!
     }));
   };

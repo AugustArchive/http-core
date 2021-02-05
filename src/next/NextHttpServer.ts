@@ -22,9 +22,7 @@
 
 import type { Network, HttpServerOptions, HttpSSLCertificates } from '../HttpServer';
 import type { NextConfig } from 'next/dist/next-server/server/config';
-import CachableResponse from './CachableResponse';
-import { Collection } from '@augu/collections';
-import RequestHandler from './NextRequestHandler';
+import RequestHandler from '../handlers/RequestHandler';
 import { resolve } from 'path';
 import { headers } from '../middleware';
 import type Next from 'next/types';
@@ -44,12 +42,6 @@ try {
 }
 
 interface NextHttpServerOptions extends HttpServerOptions {
-  /** If we should cache responses with a TTL of 1 hour (or by using `NextHttpServerOptions.cacheTTL`) */
-  cacheResponses?: boolean;
-
-  /** The TTL for caching responses, default is 1 hour if `cacheResponses` is true */
-  cacheTTL?: number;
-
   /** The path to your Next.js configuration or a object containing your {@link https://nextjs.org/docs/api-reference/next.config.js/introduction configuration} details */
   config?: string | object;
 
@@ -72,7 +64,6 @@ interface NextHttpServerEvents {
 }
 
 const defaultConfig: NextHttpServerOptions = {
-  cacheResponses: false,
   purgeTimeout: 30000,
   middleware: [headers()],
   config: resolve(process.cwd(), '..', 'next.config.js'),
@@ -98,19 +89,18 @@ function findAvailableHost() {
  * Handles ratelimiting, not found/http status code events, etc.
  */
 export default class NextHttpServer extends EventBus {
-  /** List of cached responses with a TTL of 1 hour or specified in [NextHttpServerOptions.cacheTTL]; this is `null` if `cacheResponses` is false */
-  public cachedResponses: Collection<string, CachableResponse> | null;
-
   /** The request handler for working with Express and Next.js */
   public requests: RequestHandler;
 
   /** The options provided by the user */
   public options: NextHttpServerOptions;
 
+  /** The Express application */
+  public express!: ReturnType<typeof express>;
+
   /** The Next.js application that was bootstrapped, this is filled in when [NextHttpServer#start] has been called */
   public app!: ReturnType<typeof Next>;
 
-  #express!: ReturnType<typeof express>;
   #server!: http.Server;
   #ssl?: HttpSSLCertificates;
 
@@ -124,7 +114,9 @@ export default class NextHttpServer extends EventBus {
     if (next === undefined)
       throw new SyntaxError('Missing `next` package! Install it using `npm i next` and run this again.');
 
-    this.cachedResponses = options.cacheResponses !== undefined && options.cacheResponses === true ? new Collection() : null;
+    if (options.routes === undefined)
+      throw new SyntaxError('`options.routes` was undefined, set a path to load routes in!');
+
     this.requests = new RequestHandler(this);
     this.options = options;
     this.#ssl = options.ssl;
@@ -138,19 +130,19 @@ export default class NextHttpServer extends EventBus {
     this.emit('error', error);
   }
 
-  private async bootstrap() {
+  private bootstrap() {
     // Initialize an Express application
-    this.#express = express();
+    this.express = express();
 
     // Populate all modules
-    for (const mod of this.options.middleware ?? []) this.#express.use(mod);
+    for (const mod of this.options.middleware ?? []) this.express.use(mod);
 
     // Create a http server with SSL if needed
     this.#server = this.options.ssl !== undefined ? https.createServer({
       cert: this.options.ssl.cert,
       key: this.options.ssl.key,
       ca: this.options.ssl.ca
-    }, this.#express) : http.createServer(this.#express);
+    }, this.express) : http.createServer(this.express);
 
     // Add in listeners for http.Server
     this.#server.on('error', this._onError.bind(this));
@@ -198,10 +190,10 @@ export default class NextHttpServer extends EventBus {
     await this.app.prepare();
 
     // Bootstrap the server
-    await this.bootstrap();
+    this.bootstrap();
 
     // Create a wildcard handler for Next
-    this.#express.all('*', (req, res) => handler(req, res));
+    this.express.all('*', (req, res) => handler(req, res));
 
     // Start the server
     if (this.options.host !== undefined) {
@@ -209,5 +201,10 @@ export default class NextHttpServer extends EventBus {
     } else {
       this.#server.listen(this.options.port);
     }
+  }
+
+  close() {
+    this.debug('NextHttpServer', 'Closing out, admiral.');
+    this.#server.close();
   }
 }

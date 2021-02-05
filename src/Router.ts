@@ -22,10 +22,12 @@
 
 import { Router as ExpressRouter } from 'express';
 import Endpoint, { EndpointMeta } from './Endpoint';
+import type { NextHttpServer } from './next';
+import type HttpServer from './HttpServer';
 import { Collection } from '@augu/collections';
 
 /** A router to extend routes from a specific prefix. Extension of `express.Router`. */
-export default class Router {
+export default class Router<S extends HttpServer | NextHttpServer = HttpServer> {
   public ['constructor']!: typeof Router;
 
   /** Collection of sub-routers to implement */
@@ -37,7 +39,7 @@ export default class Router {
   /** The prefix of the router, this is used in [Router.convertPath] */
   public prefix: string;
 
-  #server: any;
+  #server!: S;
   #router: ExpressRouter;
 
   constructor(prefix: string) {
@@ -47,7 +49,7 @@ export default class Router {
     this.prefix = prefix;
   }
 
-  init(server: any) {
+  init(server: S) {
     if (!this.#server)
       this.#server = server;
 
@@ -133,13 +135,11 @@ export default class Router {
     const runner = typeof meta !== 'object' ? meta : callback!;
     const queryParams = typeof meta === 'object' ? meta.queryParams : [];
     const parameters = typeof meta === 'object' ? meta.parameters : [];
-    const body = typeof meta === 'object' ? meta.body : [];
 
     const endpoint = new Endpoint({
       queryParams,
       parameters,
       method: 'put',
-      body,
       path,
       run: runner.bind(this.#server)
     });
@@ -170,13 +170,11 @@ export default class Router {
     const runner = typeof meta !== 'object' ? meta : callback!;
     const queryParams = typeof meta === 'object' ? meta.queryParams : [];
     const parameters = typeof meta === 'object' ? meta.parameters : [];
-    const body = typeof meta === 'object' ? meta.body : [];
 
     const endpoint = new Endpoint({
       queryParams,
       parameters,
       method: 'post',
-      body,
       path,
       run: runner.bind(this.#server)
     });
@@ -207,13 +205,11 @@ export default class Router {
     const runner = typeof meta !== 'object' ? meta : callback!;
     const queryParams = typeof meta === 'object' ? meta.queryParams : [];
     const parameters = typeof meta === 'object' ? meta.parameters : [];
-    const body = typeof meta === 'object' ? meta.body : [];
 
     const endpoint = new Endpoint({
       queryParams,
       parameters,
       method: 'delete',
-      body,
       path,
       run: runner.bind(this.#server)
     });
@@ -244,13 +240,11 @@ export default class Router {
     const runner = typeof meta !== 'object' ? meta : callback!;
     const queryParams = typeof meta === 'object' ? meta.queryParams : [];
     const parameters = typeof meta === 'object' ? meta.parameters : [];
-    const body = typeof meta === 'object' ? meta.body : [];
 
     const endpoint = new Endpoint({
       queryParams,
       parameters,
       method: 'patch',
-      body,
       path,
       run: runner.bind(this.#server)
     });

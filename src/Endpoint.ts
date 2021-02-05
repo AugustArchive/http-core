@@ -27,7 +27,6 @@ export interface EndpointMeta {
   queryParams?: EndpointRequirement[];
   parameters?: EndpointRequirement[];
   method: 'get' | 'post' | 'patch' | 'put' | 'delete';
-  body?: EndpointRequirement[];
   path: string;
   run: EndpointRunFunction;
 }
@@ -45,7 +44,6 @@ export default class Endpoint {
   public queryParams: EndpointRequirement[];
   public parameters: EndpointRequirement[];
   public method: 'get' | 'post' | 'patch' | 'put' | 'delete';
-  public body: EndpointRequirement[];
   public path: string;
   public run: EndpointRunFunction;
 
@@ -53,7 +51,6 @@ export default class Endpoint {
     this.queryParams = meta.queryParams ?? [];
     this.parameters = meta.parameters ?? [];
     this.method = meta.method;
-    this.body = meta.body ?? [];
     this.path = meta.path;
     this.run = meta.run;
   }

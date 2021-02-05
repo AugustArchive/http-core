@@ -20,14 +20,16 @@
  * SOFTWARE.
  */
 
-import { Collection } from '@augu/collections';
+import EndpointManager from './managers/EndpointManager';
+import RequestHandler from './handlers/RequestHandler';
 import { headers } from './middleware';
 import EventBus from './EventBus';
 import express from 'express';
-import Router from './Router';
 import https from 'https';
 import http from 'http';
+import os from 'os';
 
+const { version } = require('../package.json');
 type ExpressMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => void;
 
 export interface HttpServerOptions {
@@ -48,6 +50,7 @@ interface HttpServerEvents {
   [x: string]: any; // fuck you
 
   listening(networks: Network[]): void;
+  debug(message: string): void;
   error(error: Error): void;
 }
 
@@ -57,38 +60,103 @@ export interface HttpSSLCertificates {
   ca?: string;
 }
 
-function merge<T extends object>(given: T, def: T) {
-  if (!given) return def;
-  for (const key in def) {
-    if (
-      !Object.hasOwnProperty.call(given, key) ||
-      given[key] === undefined
-    ) given[key] = def[key];
+const defaultConfig: HttpServerOptions = {
+  purgeTimeout: 30000,
+  middleware: [headers()],
+  port: 3621 // time to get shit on for being a furry hell yea!
+};
 
-    if (given[key] === Object(given[key]))
-      given[key] = merge(def[key as string], given[key]);
+function findAvailableHost() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const { address, family, internal } of interfaces[name]!) {
+      if (family === 'IPv4' && !internal) return address;
+    }
   }
 
-  return given;
+  return null;
 }
 
 /**
  * Represents a server to interact with the world!
  */
 export default class HttpServer extends EventBus<HttpServerEvents> {
-  public requests: any;
-  public routers: Collection<string, Router>;
+  public endpoints: EndpointManager;
+  public requests: RequestHandler;
   public options: HttpServerOptions;
+  public app: ReturnType<typeof express>;
 
-  constructor(options?: HttpServerOptions) {
+  #server!: http.Server;
+
+  constructor(options: HttpServerOptions = defaultConfig) {
     super();
 
-    this.requests = null;
-    this.routers = new Collection();
-    this.options = merge<HttpServerOptions>(options!, {
-      purgeTimeout: 30000,
-      middleware: [headers()],
-      port: 3621, // furries for the win! (im gonna get shit for this arent i, maybe?)
+    if (options.routes === undefined)
+      throw new SyntaxError('`options.routes` was undefined, set some routes!');
+
+    this.endpoints = new EndpointManager(this, options.routes);
+    this.requests = new RequestHandler(this);
+    this.options = options;
+    this.app = express();
+  }
+
+  private debug(title: string, message: string) {
+    this.emit('debug', `[${title}] ${message}`);
+  }
+
+  async start() {
+    this.debug('HttpServer', 'Initializing server...');
+    this.debug('HttpServer', `Using v${version} of http-core | Report bugs -> https://github.com/auguwu/http-core/issues`);
+
+    // Load in modules
+    for (const mod of this.options.middleware ?? []) this.app.use(mod);
+
+    // Initialize routers
+    await this.endpoints.load();
+
+    // Initialize the server with SSL if implemented
+    this.#server = this.options.ssl !== undefined ? https.createServer({
+      cert: this.options.ssl.cert,
+      key: this.options.ssl.key,
+      ca: this.options.ssl.ca
+    }, this.app) : http.createServer(this.app);
+
+    // Add in listeners for http.Server
+    this.#server.on('error', error => this.emit('error', error));
+    this.#server.on('listening', () => {
+      const address = this.#server.address();
+      const networks: Network[] = [];
+
+      if (typeof address === 'string') {
+        networks.push({ type: 'sock', host: address });
+      } else if (address !== null) {
+        if (address.address === '::')
+          networks.push({ type: 'local', host: 'localhost' });
+
+        networks.push({ type: 'network', host: address.address });
+      }
+
+      networks.push({ type: 'network', host: findAvailableHost()! });
+      const prefix = this.options.ssl !== undefined ? 'https' : 'http';
+
+      this.emit('listening', networks.map<Network>(network => ({
+        type: network.type,
+        host: network.type === 'sock' ? network.host : `${prefix}://${network.host}:${this.options.port}`
+      })));
     });
+
+    // Start the server
+    if (this.options.host !== undefined) {
+      this.#server.listen(this.options.port, this.options.host);
+    } else {
+      this.#server.listen(this.options.port);
+    }
+
+    this.debug('HttpServer', 'Initialized successfully, maybe.');
+  }
+
+  close() {
+    this.debug('HttpServer', 'Closing out, admiral.');
+    this.#server.close();
   }
 }

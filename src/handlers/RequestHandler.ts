@@ -22,6 +22,10 @@
 
 import type { Request, Response } from 'express';
 import { Collection } from '@augu/collections';
+import { NextHttpServer } from '../next';
+import HttpServer from '../HttpServer';
+import Endpoint from '../Endpoint';
+import { X_OK } from 'constants';
 
 interface Ratelimit {
   remaining: number;
@@ -38,22 +42,22 @@ interface Ratelimit {
 export default class RequestHandler {
   #purgeInterval: NodeJS.Timer;
   #ratelimits: Collection<string, Ratelimit>;
-  #server: any;
+  #server: NextHttpServer | HttpServer;
 
   /**
    * Creates a new [RequestHandler] instance
    * @param server The [HttpServer] to use
    */
-  constructor(server: any) {
-    // We use `.unref` to not keep the event loop awake
-    // to call RequestHandler#purge.
-    this.#purgeInterval = setInterval(() => this.purge(), 30000).unref(); // todo: make this configurable
+  constructor(server: NextHttpServer | HttpServer) {
+    // We use `.unref` to not keep the event loop awake to call RequestHandler#purge.
+    this.#purgeInterval = setInterval(() => this.purge(), server.options.purgeTimeout ?? 30000).unref();
     this.#ratelimits = new Collection();
     this.#server = server;
   }
 
   private purge() {
-    this.#server.log('RequestHandler', `Cleaning up ${this.#ratelimits.size} records...`);
+    // @ts-ignore
+    this.#server.emit('debug', `[RequestHandler] Cleaning up ${this.#ratelimits.size} records...`);
 
     for (const record of this.#ratelimits.keys()) this.#ratelimits.delete(record);
   }
@@ -62,7 +66,8 @@ export default class RequestHandler {
    * Disposes this request handler, this is called with {@link https://docs.floofy.dev/http/classes#HttpServer-close #close} method.
    */
   dispose() {
-    this.#server.log('RequestHandler', 'Disposing this singleton');
+    // @ts-ignore
+    this.#server.emit('debug', '[RequestHandler] Disposed singleton');
     clearInterval(this.#purgeInterval);
   }
 
@@ -72,7 +77,24 @@ export default class RequestHandler {
    * @param res The response
    * @param route The route that was found from a specific {@link https://docs.floofy.dev/http/classes#class-Router Router}
    */
-  handle(req: Request, res: Response, route: any) {
-    // todo: stuff lol
+  handle(req: Request, res: Response, route: Endpoint) {
+    // @ts-ignore
+    this.#server.emit('debug', `[RequestHandler] ${req.method.toUpperCase()} ${req.url} | ${route.method} ${route.path}`);
+
+    // TODO: make this customizable?
+    if (req.method.toLowerCase() !== route.method.toLowerCase())
+      return res.status(405).json({
+        message: `Method '${req.method.toLowerCase()}' on '${route.method.toLowerCase()} ${route.path}' is not allowed`
+      });
+
+    if (route.queryParams.length) {
+      // todo
+    }
+
+    if (route.parameters.length) {
+      // todo
+    }
+
+    // ratelimits time
   }
 }

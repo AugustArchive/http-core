@@ -21,37 +21,16 @@
  */
 
 import type { Request, Response } from 'express';
+import { Router, Route } from '../../src';
 
-/** Metadata referring to a {@link https://docs.floofy.dev/http/classes#class-Endpoint Endpoint}. */
-export interface EndpointMeta {
-  queryParams?: EndpointRequirement[];
-  parameters?: EndpointRequirement[];
-  method: 'get' | 'post' | 'patch' | 'put' | 'delete';
-  path: string;
-  run: EndpointRunFunction;
-}
+export default class SomeDummyRouter extends Router {
+  constructor() {
+    super('/');
+  }
 
-interface EndpointRequirement {
-  required: boolean;
-  name: string;
-}
-
-type EndpointRunFunction = (this: any, req: Request, res: Response) => any | Promise<any>;
-export type IEndpointRunFunc = (req: Request, res: Response) => any | Promise<any>;
-
-/** Represents a endpoint from a {@link https://docs.floofy.dev/http/classes#class-Router Router} instance */
-export default class Endpoint {
-  public queryParams: EndpointRequirement[];
-  public parameters: EndpointRequirement[];
-  public method: 'get' | 'post' | 'patch' | 'put' | 'delete';
-  public path: string;
-  public run: EndpointRunFunction;
-
-  constructor(meta: EndpointMeta) {
-    this.queryParams = meta.queryParams ?? [];
-    this.parameters = meta.parameters ?? [];
-    this.method = meta.method;
-    this.path = meta.path;
-    this.run = meta.run;
+  @Route('/', 'get')
+  // @ts-ignore We do have decorators enabled...
+  async main(req: Request, res: Response) {
+    return res.status(200).json({ ping: 0 });
   }
 }

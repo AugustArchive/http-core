@@ -20,38 +20,45 @@
  * SOFTWARE.
  */
 
+import { Route, Router, getReferences } from '../src';
 import type { Request, Response } from 'express';
 
-/** Metadata referring to a {@link https://docs.floofy.dev/http/classes#class-Endpoint Endpoint}. */
-export interface EndpointMeta {
-  queryParams?: EndpointRequirement[];
-  parameters?: EndpointRequirement[];
-  method: 'get' | 'post' | 'patch' | 'put' | 'delete';
-  path: string;
-  run: EndpointRunFunction;
-}
+class DummyRouter extends Router {
+  constructor() {
+    super('/');
+  }
 
-interface EndpointRequirement {
-  required: boolean;
-  name: string;
-}
-
-type EndpointRunFunction = (this: any, req: Request, res: Response) => any | Promise<any>;
-export type IEndpointRunFunc = (req: Request, res: Response) => any | Promise<any>;
-
-/** Represents a endpoint from a {@link https://docs.floofy.dev/http/classes#class-Router Router} instance */
-export default class Endpoint {
-  public queryParams: EndpointRequirement[];
-  public parameters: EndpointRequirement[];
-  public method: 'get' | 'post' | 'patch' | 'put' | 'delete';
-  public path: string;
-  public run: EndpointRunFunction;
-
-  constructor(meta: EndpointMeta) {
-    this.queryParams = meta.queryParams ?? [];
-    this.parameters = meta.parameters ?? [];
-    this.method = meta.method;
-    this.path = meta.path;
-    this.run = meta.run;
+  @Route('/', 'get')
+  // @ts-ignore We do have decorators enabled...
+  async main(req: Request, res: Response) {
+    return res.status(200).send('Pong!');
   }
 }
+
+const dummyRouter = new Router('/uwu');
+dummyRouter.get('/:userId', (req, res) => res.status(200).send('uwu!'));
+
+describe('Routing', () => {
+  let router!: DummyRouter;
+  beforeAll(() => (router = new DummyRouter(), void 0));
+
+  test('[decorators] should have 1 route from the target', () => {
+    const references = getReferences(router);
+
+    expect(references.length).toBe(1);
+  });
+
+  test('[decorators] route 1 should have / as it\'s path', () => {
+    const references = getReferences(router);
+
+    expect(references.length).toBe(1);
+    expect(references[0].path).toBe('/');
+  });
+
+  test('[class-based] dummy router should be /uwu/:userId', () => {
+    const route = dummyRouter.routes.get('get:/:userId')!;
+
+    expect(route).not.toBeUndefined();
+    expect(route.path).toBe('/uwu/:userId');
+  });
+});

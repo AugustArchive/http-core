@@ -14,6 +14,6 @@
     "emitDecoratorMetadata": true,
     "noEmit": true // don't let typescript compile to the fs
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "tests/**/*"]
+  "include": ["test/**/*"],
+  "exclude": ["node_modules", "src/**/*"]
 }

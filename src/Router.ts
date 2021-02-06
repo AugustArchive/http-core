@@ -104,7 +104,7 @@ export default class Router<S extends HttpServer = HttpServer> {
       queryParams,
       parameters,
       method: 'get',
-      path,
+      path: this.convertPath(this.prefix, path),
       run: runner.bind(this.#server)
     });
 
@@ -139,7 +139,7 @@ export default class Router<S extends HttpServer = HttpServer> {
       queryParams,
       parameters,
       method: 'put',
-      path,
+      path: this.convertPath(this.prefix, path),
       run: runner.bind(this.#server)
     });
 
@@ -174,7 +174,7 @@ export default class Router<S extends HttpServer = HttpServer> {
       queryParams,
       parameters,
       method: 'post',
-      path,
+      path: this.convertPath(this.prefix, path),
       run: runner.bind(this.#server)
     });
 
@@ -209,7 +209,7 @@ export default class Router<S extends HttpServer = HttpServer> {
       queryParams,
       parameters,
       method: 'delete',
-      path,
+      path: this.convertPath(this.prefix, path),
       run: runner.bind(this.#server)
     });
 
@@ -244,7 +244,7 @@ export default class Router<S extends HttpServer = HttpServer> {
       queryParams,
       parameters,
       method: 'patch',
-      path,
+      path: this.convertPath(this.prefix, path),
       run: runner.bind(this.#server)
     });
 

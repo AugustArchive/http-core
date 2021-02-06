@@ -20,8 +20,8 @@
  * SOFTWARE.
  */
 
+import { getRouteReferences } from '../decorators';
 import { promises as fs } from 'fs';
-import { getReferences } from '../decorators';
 import type HttpServer from '../HttpServer';
 import { Collection } from '@augu/collections';
 import { join } from 'path';
@@ -106,7 +106,7 @@ export default class EndpointManager {
           router = ctor as unknown as Router;
       }
 
-      const references = getReferences(router);
+      const references = getRouteReferences(router);
       for (let i = 0; i < references.length; i++) {
         const endpoint = references[i];
 

@@ -1,7 +1,7 @@
 {
   "name": "@augu/http",
   "description": "🧶 Simple, powerful http web-framework for Express fit for my needs.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "August <cutie@floofy.dev>",
   "license": "MIT",
   "repository": "https://github.com/auguwu/http-core",
@@ -14,6 +14,7 @@
     "index.d.ts"
   ],
   "scripts": {
+    "prepare": "npm run build",
     "test:ci": "jest --config jest.config.js --ci",
     "build": "npm run lint && rm -rf build && tsc",
     "lint": "eslint src --ext .ts --fix",

@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-import { Route, Router, getReferences } from '../src';
+import { Route, Router, getRouteReferences } from '../src';
 import type { Request, Response } from 'express';
 
 class DummyRouter extends Router {
@@ -43,13 +43,13 @@ describe('Routing', () => {
   beforeAll(() => (router = new DummyRouter(), void 0));
 
   test('[decorators] should have 1 route from the target', () => {
-    const references = getReferences(router);
+    const references = getRouteReferences(router);
 
     expect(references.length).toBe(1);
   });
 
   test('[decorators] route 1 should have / as it\'s path', () => {
-    const references = getReferences(router);
+    const references = getRouteReferences(router);
 
     expect(references.length).toBe(1);
     expect(references[0].path).toBe('/');

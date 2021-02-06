@@ -21,7 +21,6 @@
  */
 
 import { promises as fs } from 'fs';
-import { NextHttpServer } from '../next';
 import { getReferences } from '../decorators';
 import type HttpServer from '../HttpServer';
 import { Collection } from '@augu/collections';
@@ -32,10 +31,6 @@ interface Ctor<T> {
   new (...args: any[]): T;
 
   default?: Ctor<T> & { default: never };
-}
-
-function isNextHttp(x: unknown): x is NextHttpServer {
-  return x instanceof NextHttpServer && typeof x.express !== 'undefined';
 }
 
 /**
@@ -53,7 +48,7 @@ async function readdir(path: string) {
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     const rawPath = join(path, file);
-    const stats = await fs.lstat(file);
+    const stats = await fs.lstat(rawPath);
 
     if (stats.isDirectory()) {
       const items = await readdir(rawPath);
@@ -71,20 +66,19 @@ export default class EndpointManager {
   public routers: Collection<string, Router>;
 
   #directory: string;
-  #server: HttpServer | NextHttpServer;
+  #server: HttpServer;
 
   /**
    * Constructs a new [EndpointManager] instance
    * @param directory The directory
    */
-  constructor(server: HttpServer | NextHttpServer, directory: string) {
+  constructor(server: HttpServer, directory: string) {
     this.#directory = directory;
     this.routers = new Collection();
     this.#server = server;
   }
 
   private debug(title: string, message: string) {
-    // @ts-ignore yea no thanks
     this.#server.emit('debug', `[${title}] ${message}`);
   }
 
@@ -103,31 +97,33 @@ export default class EndpointManager {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const ctor: Ctor<Router> = await import(file);
-      const router = (ctor.default ? new ctor.default() : new ctor()).init(this.#server as any);
+      let router!: Router;
+
+      try {
+        router = ctor.default ? new ctor.default() : new ctor();
+      } catch(ex) {
+        if (ex.message.indexOf('not a constructor') !== -1)
+          router = ctor as unknown as Router;
+      }
 
       const references = getReferences(router);
       for (let i = 0; i < references.length; i++) {
         const endpoint = references[i];
-        const server = isNextHttp(this.#server) ? this.#server.express : this.#server.app;
 
-        server[endpoint.method](endpoint.path, async (req, res) => {
+        this.#server.app[endpoint.method](endpoint.path, async (req, res) => {
           try {
             await this.#server.requests.handle(req, res, endpoint);
           } catch(ex) {
-            // @ts-ignore it exists ok
             this.#server.emit('error', ex);
           }
         });
       }
 
       for (const endpoint of router.routes.values()) {
-        const server = isNextHttp(this.#server) ? this.#server.express : this.#server.app;
-
-        server[endpoint.method](endpoint.path, async (req, res) => {
+        this.#server.app[endpoint.method](endpoint.path, async (req, res) => {
           try {
             await this.#server.requests.handle(req, res, endpoint);
           } catch(ex) {
-            // @ts-ignore it exists ok
             this.#server.emit('error', ex);
           }
         });

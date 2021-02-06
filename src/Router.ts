@@ -22,12 +22,11 @@
 
 import { Router as ExpressRouter } from 'express';
 import Endpoint, { EndpointMeta } from './Endpoint';
-import type { NextHttpServer } from './next';
 import type HttpServer from './HttpServer';
 import { Collection } from '@augu/collections';
 
 /** A router to extend routes from a specific prefix. Extension of `express.Router`. */
-export default class Router<S extends HttpServer | NextHttpServer = HttpServer> {
+export default class Router<S extends HttpServer = HttpServer> {
   public ['constructor']!: typeof Router;
 
   /** Collection of sub-routers to implement */

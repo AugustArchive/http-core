@@ -94,9 +94,9 @@ export default class HttpServer extends EventBus<HttpServerEvents> {
     if (options.routes === undefined)
       throw new SyntaxError('`options.routes` was undefined, set some routes!');
 
+    this.options = options;
     this.endpoints = new EndpointManager(this, options.routes);
     this.requests = new RequestHandler(this);
-    this.options = options;
     this.app = express();
   }
 
@@ -109,7 +109,7 @@ export default class HttpServer extends EventBus<HttpServerEvents> {
     this.debug('HttpServer', `Using v${version} of http-core | Report bugs -> https://github.com/auguwu/http-core/issues`);
 
     // Load in modules
-    for (const mod of this.options.middleware ?? []) this.app.use(mod);
+    for (const mod of this.options.middleware ?? []) this.app.use(mod.bind(this));
 
     // Initialize routers
     await this.endpoints.load();

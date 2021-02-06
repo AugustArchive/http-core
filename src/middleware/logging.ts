@@ -36,8 +36,8 @@ export default () => {
     next(); // just continue for now
 
     let fullUrl = req.url;
-    const params = Object.keys(req.params);
-    const queryParams = Object.entries(req.query);
+    const params = req.params !== undefined || req.params !== null ? Object.keys(req.params) : [];
+    const queryParams = req.query !== undefined || req.query !== null ? Object.entries(req.query) : [];
 
     for (let i = 0; i < params.length; i++)
       fullUrl += `/${params[i]}`;
@@ -53,7 +53,6 @@ export default () => {
       const time = calc(start);
 
       this.emit('request', {
-        headers: Object.entries(req.headers).map(([key, value]) => `${key}=${value}`),
         status: `${res.statusCode} ${STATUS_CODES[res.statusCode]}`,
         method: req.method.toUpperCase(),
         path: req.url,

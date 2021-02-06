@@ -1,0 +1,14 @@
+.github/
+.vscode/
+node_modules/
+server/
+test/
+
+.eslintrc.json
+.gitignore
+jest.config.js
+LICENSE
+package-lock.json
+renovate.json
+tsconfig.json
+tsconfig.test.json

@@ -52,7 +52,7 @@ export default function Route(path: string, method: 'get' | 'post' | 'delete' | 
       target.constructor[ROUTE_SYMBOL] = [];
 
 
-    (target.constructor as Endpoint[]).push(new Endpoint({
+    (target.constructor[ROUTE_SYMBOL] as Endpoint[]).push(new Endpoint({
       queryParams: options?.queryParams,
       parameters: options?.parameters,
       method,

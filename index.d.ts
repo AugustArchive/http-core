@@ -20,7 +20,270 @@
  * SOFTWARE.
  */
 
-/** Main entrypoint for `@augu/http` */
-declare module '@augu/http' {
+/* eslint-disable @typescript-eslint/ban-types */
 
+import { EventEmitter } from 'events';
+import { Collection } from '@augu/collections';
+import * as express from 'express';
+
+declare namespace http {
+  /** Returns the version of `@augu/http` */
+  export const version: string;
+
+  /** Metadata referring to a {@link https://docs.floofy.dev/http/classes#class-Endpoint Endpoint}. */
+  interface EndpointMeta {
+    queryParams?: EndpointRequirement[];
+    parameters?: EndpointRequirement[];
+    method: 'get' | 'post' | 'patch' | 'put' | 'delete';
+    path: string;
+    run: EndpointRunner;
+  }
+
+  interface EndpointRequirement {
+    required: boolean;
+    name: string;
+  }
+
+  type EndpointRunner<S = http.HttpServer> = (this: S, req: Request, res: Response) => any | Promise<any>;
+
+  type ExpressMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => void;
+
+  export interface HttpServerOptions {
+    purgeTimeout?: number;
+    middleware?: ExpressMiddleware[];
+    routes?: string;
+    host?: string;
+    port?: number;
+    ssl?: HttpSSLCertificates;
+  }
+
+  export interface Network {
+    type: 'network' | 'local' | 'sock';
+    host: string;
+  }
+
+  interface HttpServerEvents {
+    [x: string]: any; // fuck you
+
+    listening(networks: Network[]): void;
+    debug(message: string): void;
+    error(error: Error): void;
+  }
+
+  export interface HttpSSLCertificates {
+    cert: string;
+    key: string;
+    ca?: string;
+  }
+
+  /**
+   * Represents a decorator to mark a method as a Function from a `Router` instance
+   * @param path The path to use
+   * @param method The method to use
+   * @param options The options to use
+   */
+  export function Route(
+    path: string,
+    method: 'get' | 'post' | 'put' | 'delete' | 'patch',
+    options?: Omit<EndpointMeta, 'method' | 'run' | 'path'>
+  ): MethodDecorator;
+
+  /**
+   * Returns any references from the [ROUTE_SYMBOL] available
+   * @param target The target class
+   */
+  export function getRouteReferences(target: any): http.Endpoint[];
+
+  /**
+   * A router class to extend routes to from a specfic prefix. This can be used
+   * with the `@Route` decorator or an Express-similar approach.
+   *
+   * This is also an extension to `express.Router`
+   */
+  export class Router<S extends http.HttpServer = http.HttpServer> {
+    /** List of sub-routers chained to this [Router] */
+    public subrouters: Collection<string, Router<S>>;
+
+    /** List of routes available of this [Router]'s context */
+    public routes: Collection<string, http.Endpoint>;
+
+    /** The prefix to use */
+    public prefix: string;
+
+    /** Returns the available [express.Router] instance for this [Router] */
+    public get router(): express.Router;
+
+    /** Sets the [express.Router] instance for this [Router] */
+    public set router(r: express.Router);
+
+    /**
+     * Defines an new subrouter of a specific prefix
+     * @param prefix The prefix to use
+     * @returns A new [Router] instance
+     */
+    public route(prefix: string): Router<S>;
+
+    /**
+     * Creates a endpoint using a `GET` request
+     * @param path The path to use
+     * @param meta The metadata used
+     * @param callback A callback function if any specified metadata
+     */
+    public get(
+      path: string,
+      meta: Omit<http.EndpointMeta, 'method' | 'run' | 'path'>,
+      callback: http.EndpointRunner<S>
+    ): Router<S>;
+
+    /**
+     * Creates a endpoint using a `GET` request
+     * @param path The path to use
+     * @param callback A callback function if any specified metadata
+     */
+    public get(
+      path: string,
+      callback: http.EndpointRunner<S>
+    ): Router<S>;
+
+    /**
+     * Creates a endpoint using a `PUT` request
+     * @param path The path to use
+     * @param meta The metadata used
+     * @param callback A callback function if any specified metadata
+     */
+    public put(
+      path: string,
+      meta: Omit<http.EndpointMeta, 'method' | 'run' | 'path'>,
+      callback: http.EndpointRunner<S>
+    ): Router<S>;
+
+    /**
+     * Creates a endpoint using a `PUT` request
+     * @param path The path to use
+     * @param callback A callback function if any specified metadata
+     */
+    public put(
+      path: string,
+      callback: http.EndpointRunner<S>
+    ): Router<S>;
+
+    /**
+     * Creates a endpoint using a `POST` request
+     * @param path The path to use
+     * @param meta The metadata used
+     * @param callback A callback function if any specified metadata
+     */
+    public post(
+      path: string,
+      meta: Omit<http.EndpointMeta, 'method' | 'run' | 'path'>,
+      callback: http.EndpointRunner<S>
+    ): Router<S>;
+
+    /**
+     * Creates a endpoint using a `POST` request
+     * @param path The path to use
+     * @param callback A callback function if any specified metadata
+     */
+    public post(
+      path: string,
+      callback: http.EndpointRunner<S>
+    ): Router<S>;
+
+    /**
+     * Creates a endpoint using a `PATCH` request
+     * @param path The path to use
+     * @param meta The metadata used
+     * @param callback A callback function if any specified metadata
+     */
+    public patch(
+      path: string,
+      meta: Omit<http.EndpointMeta, 'method' | 'run' | 'path'>,
+      callback: http.EndpointRunner<S>
+    ): Router<S>;
+
+    /**
+     * Creates a endpoint using a `PATCH` request
+     * @param path The path to use
+     * @param callback A callback function if any specified metadata
+     */
+    public patch(
+      path: string,
+      callback: http.EndpointRunner<S>
+    ): Router<S>;
+
+    /**
+     * Creates a endpoint using a `DELETE` request
+     * @param path The path to use
+     * @param meta The metadata used
+     * @param callback A callback function if any specified metadata
+     */
+    public delete(
+      path: string,
+      meta: Omit<http.EndpointMeta, 'method' | 'run' | 'path'>,
+      callback: http.EndpointRunner<S>
+    ): Router<S>;
+
+    /**
+     * Creates a endpoint using a `DELETE` request
+     * @param path The path to use
+     * @param callback A callback function if any specified metadata
+     */
+    public delete(
+      path: string,
+      callback: http.EndpointRunner<S>
+    ): Router<S>;
+
+    /**
+     * Utility function to convert prefixes from one and another
+     * @param prefix The prefix to use
+     * @param toMerge The prefix to merge with
+     */
+    public convertPath(prefix: string, toMerge: string): string;
+  }
+
+  /** Represents a endpoint from a {@link https://docs.floofy.dev/http/classes#class-Router Router} instance */
+  class Endpoint {
+    public queryParams: EndpointRequirement[];
+    public parameters: EndpointRequirement[];
+    public method: 'get' | 'post' | 'patch' | 'put' | 'delete';
+    public path: string;
+    public run: EndpointRunner;
+
+    constructor(meta: EndpointMeta);
+  }
+
+  interface DefaultEventEmitterMap {
+    [x: string]: (...args: any[]) => void;
+  }
+
+  interface EventBus<E extends DefaultEventEmitterMap = DefaultEventEmitterMap> extends EventEmitter {
+    emit: <Event extends Extract<keyof E, string>>(event: Event, ...args: Parameters<E[Event]>) => boolean;
+
+    on: <Event extends Extract<keyof E, string>>(event: Event, callback: E[Event]) => this;
+    once: <Event extends Extract<keyof E, string>>(event: Event, callback: E[Event]) => this;
+    addListener: <Event extends Extract<keyof E, string>>(event: Event, callback: E[Event]) => this;
+    prependListener: <Event extends Extract<keyof E, string>>(event: Event, callback: E[Event]) => this;
+    prependOnceListener: <Event extends Extract<keyof E, string>>(event: Event, callback: E[Event]) => this;
+
+    off: <Event extends Extract<keyof E, string>>(event: Event, callback: E[Event]) => this;
+    removeListener: <Event extends Extract<keyof E, string>>(event: Event, callback: E[Event]) => this;
+    removeAllListeners: (event: Extract<keyof E, string>) => this;
+
+    listeners: (event: Extract<keyof E, string>) => Function[];
+    rawListeners: (event: Extract<keyof E, string>) => Function[];
+    listenerCount: (event: Extract<keyof E, string>) => number;
+  }
+
+  class EventBus<E extends DefaultEventEmitterMap = DefaultEventEmitterMap> extends EventEmitter {}
+
+  export class HttpServer extends EventBus<http.HttpServerEvents> {
+    public options: http.HttpServerOptions;
+    public app: ReturnType<typeof express>;
+
+    public start(): Promise<void>;
+    public close(): void;
+  }
 }
+
+export = http;
+export as namespace http;

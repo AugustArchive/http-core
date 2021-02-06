@@ -20,6 +20,9 @@
  * SOFTWARE.
  */
 
+const { version: pkgVersion } = require('../package.json');
+
+export const version: string = pkgVersion;
 export * as middleware from './middleware';
 export * from './decorators';
 

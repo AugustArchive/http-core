@@ -20,4 +20,4 @@
  * SOFTWARE.
  */
 
-export { default as Route, getReferences } from './Routing';
+export { default as Route, getReferences as getRouteReferences } from './Routing';

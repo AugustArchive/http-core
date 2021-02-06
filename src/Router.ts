@@ -71,9 +71,11 @@ export default class Router<S extends HttpServer = HttpServer> {
   route(prefix: string) {
     const r = ExpressRouter();
     const router = new this.constructor(prefix);
-    router.router = r;
 
+    router.router = r;
+    this.router.use(router.router);
     this.subrouters.set(this.convertPath(this.prefix, prefix), router);
+
     return router;
   }
 

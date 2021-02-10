@@ -139,6 +139,8 @@ export default class RequestHandler {
           message: 'Ratelimit has exceeded, try again in a hour.'
         });
       }
+
+      this.#ratelimits.set(req.ip, ratelimit);
     }
 
     return route.run(req, res);

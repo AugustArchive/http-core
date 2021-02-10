@@ -22,9 +22,10 @@
 
 import EndpointManager from './managers/EndpointManager';
 import RequestHandler from './handlers/RequestHandler';
+import { EventBus } from '@augu/utils';
 import { headers } from './middleware';
-import EventBus from './EventBus';
 import express from 'express';
+import Router from './Router';
 import https from 'https';
 import http from 'http';
 import os from 'os';
@@ -50,8 +51,17 @@ interface HttpServerEvents {
   [x: string]: any; // fuck you
 
   listening(networks: Network[]): void;
+  request(props: RequestProperties): void;
   debug(message: string): void;
   error(error: Error): void;
+}
+
+interface RequestProperties {
+  status: string;
+  method: string;
+  path: string;
+  time: number;
+  url: string;
 }
 
 export interface HttpSSLCertificates {
@@ -137,11 +147,15 @@ export default class HttpServer extends EventBus<HttpServerEvents> {
       }
 
       networks.push({ type: 'network', host: findAvailableHost()! });
-      const prefix = this.options.ssl !== undefined ? 'https' : 'http';
+      const prefix = typeof address === 'string'
+        ? 'unix:///'
+        : this.options.ssl !== undefined
+          ? 'https://'
+          : 'http://';
 
       this.emit('listening', networks.map<Network>(network => ({
         type: network.type,
-        host: network.type === 'sock' ? network.host : `${prefix}://${network.host}:${this.options.port}`
+        host: network.type === 'sock' ? network.host : `${prefix}${network.host}:${this.options.port}`
       })));
     });
 
@@ -158,5 +172,14 @@ export default class HttpServer extends EventBus<HttpServerEvents> {
   close() {
     this.debug('HttpServer', 'Closing out, admiral.');
     this.#server.close();
+  }
+
+  use(middleware: ExpressMiddleware) {
+    return this.app.use(middleware.bind(this));
+  }
+
+  addRouter(r: Router<this>) {
+    this.endpoints.addRouter(r);
+    return this;
   }
 }

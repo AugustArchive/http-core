@@ -22,44 +22,10 @@
 
 import { getRouteReferences } from '../decorators';
 import { promises as fs } from 'fs';
+import { readdir, Ctor } from '@augu/utils';
 import type HttpServer from '../HttpServer';
 import { Collection } from '@augu/collections';
-import { join } from 'path';
 import Router from '../Router';
-
-interface Ctor<T> {
-  new (...args: any[]): T;
-
-  default?: Ctor<T> & { default: never };
-}
-
-/**
- * Asynchronouslly read a directory recursively if any directories
- * are hit. [fs.readdir] does the job but doesn't recursively
- * add them in the array once fetched, it's just the directory name,
- * not the contents of that directory.
- *
- * @param path The path to get all files from
- */
-async function readdir(path: string) {
-  let results: string[] = [];
-  const files = await fs.readdir(path);
-
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    const rawPath = join(path, file);
-    const stats = await fs.lstat(rawPath);
-
-    if (stats.isDirectory()) {
-      const items = await readdir(rawPath);
-      results = results.concat(items);
-    } else {
-      results.push(rawPath);
-    }
-  }
-
-  return results;
-}
 
 /** Represents a manager for handling routing */
 export default class EndpointManager {
@@ -80,6 +46,48 @@ export default class EndpointManager {
 
   private debug(title: string, message: string) {
     this.#server.emit('debug', `[${title}] ${message}`);
+  }
+
+  addRouter(router: Router<HttpServer>) {
+    const references = getRouteReferences(router);
+    for (let i = 0; i < references.length; i++) {
+      const endpoint = references[i];
+
+      this.#server.app[endpoint.method](endpoint.path, async (req, res) => {
+        try {
+          await this.#server.requests.handle(req, res, endpoint);
+        } catch(ex) {
+          this.#server.emit('error', ex);
+        }
+      });
+    }
+
+    for (const endpoint of router.routes.values()) {
+      this.#server.app[endpoint.method](endpoint.path, async (req, res) => {
+        try {
+          await this.#server.requests.handle(req, res, endpoint);
+        } catch(ex) {
+          this.#server.emit('error', ex);
+        }
+      });
+    }
+
+    for (const subrouter of router.subrouters.values()) {
+      const endpoints = subrouter.routes.toArray();
+      for (let i = 0; i < endpoints.length; i++) {
+        const endpoint = endpoints[i];
+        this.#server.app[endpoint.method](endpoint.path, async (req, res) => {
+          try {
+            await this.#server.requests.handle(req, res, endpoint);
+          } catch(ex) {
+            this.#server.emit('error', ex);
+          }
+        });
+      }
+    }
+
+    this.routers.set(router.prefix, router);
+    this.debug('Endpoints -> Router', `Dynamically added router '${router.prefix}'`);
   }
 
   async load() {
@@ -104,6 +112,9 @@ export default class EndpointManager {
       } catch(ex) {
         if (ex.message.indexOf('not a constructor') !== -1)
           router = ctor as unknown as Router;
+
+        if (!router)
+          throw ex;
       }
 
       const references = getRouteReferences(router);
@@ -127,6 +138,20 @@ export default class EndpointManager {
             this.#server.emit('error', ex);
           }
         });
+      }
+
+      for (const subrouter of router.subrouters.values()) {
+        const endpoints = subrouter.routes.toArray();
+        for (let i = 0; i < endpoints.length; i++) {
+          const endpoint = endpoints[i];
+          this.#server.app[endpoint.method](endpoint.path, async (req, res) => {
+            try {
+              await this.#server.requests.handle(req, res, endpoint);
+            } catch(ex) {
+              this.#server.emit('error', ex);
+            }
+          });
+        }
       }
 
       this.routers.set(router.prefix, router);

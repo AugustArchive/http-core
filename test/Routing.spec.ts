@@ -20,8 +20,10 @@
  * SOFTWARE.
  */
 
-import { Route, Router, getRouteReferences } from '../src';
+import { Route, Router, getRouteReferences, HttpServer } from '../src';
 import type { Request, Response } from 'express';
+import supertest from 'supertest';
+import { join } from 'path';
 
 class DummyRouter extends Router {
   constructor() {
@@ -38,9 +40,24 @@ class DummyRouter extends Router {
 const dummyRouter = new Router('/uwu');
 dummyRouter.get('/:userId', (req, res) => res.status(200).send('uwu!'));
 
+const owo = new Router('/owo');
+const subrouter = owo.route('/uwu');
+
+subrouter.get('/', (_, res) => res.status(200).send({ ping: 0 }));
+
 describe('Routing', () => {
   let router!: DummyRouter;
-  beforeAll(() => (router = new DummyRouter(), void 0));
+  let server!: HttpServer;
+
+  beforeAll(async () => {
+    router = new DummyRouter();
+    server = new HttpServer({ routes: join(__dirname, 'routes') });
+
+    server.addRouter(owo);
+    await server.start();
+  });
+
+  afterAll(() => server.close());
 
   test('[decorators] should have 1 route from the target', () => {
     const references = getRouteReferences(router);
@@ -60,5 +77,27 @@ describe('Routing', () => {
 
     expect(route).not.toBeUndefined();
     expect(route.path).toBe('/uwu/:userId');
+  });
+
+  test('[subrouter] subrouter should contain 1 subrouter', () =>
+    expect(owo.subrouters.size).toBe(1)
+  );
+
+  test('[subrouter] /owo should have /uwu as a subrouter defined as /owo/uwu', () => {
+    expect(owo.subrouters.get('/owo/uwu')).not.toBeUndefined();
+  });
+
+  test('[subrouter] /owo should redirect to a 404', async () => {
+    const res = await supertest(server.app).get('/owo');
+
+    expect(res.status).toBe(404);
+    expect(res.body).toStrictEqual({}); // what??
+  });
+
+  test('[subrouter] /owo/uwu should be a 200', async() => {
+    const res = await supertest(server.app).get('/owo/uwu');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('ping');
   });
 });

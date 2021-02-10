@@ -22,8 +22,8 @@
 
 /* eslint-disable @typescript-eslint/ban-types */
 
-import { EventEmitter } from 'events';
 import { Collection } from '@augu/collections';
+import { EventBus } from '@augu/utils';
 import * as express from 'express';
 
 declare namespace http {
@@ -45,7 +45,6 @@ declare namespace http {
   }
 
   type EndpointRunner<S = http.HttpServer> = (this: S, req: Request, res: Response) => any | Promise<any>;
-
   type ExpressMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => void;
 
   export interface HttpServerOptions {
@@ -62,10 +61,19 @@ declare namespace http {
     host: string;
   }
 
+  interface RequestProps {
+    status: string;
+    method: string;
+    path: string;
+    time: number;
+    url: string;
+  }
+
   interface HttpServerEvents {
     [x: string]: any; // fuck you
 
     listening(networks: Network[]): void;
+    request(props: RequestProps): void;
     debug(message: string): void;
     error(error: Error): void;
   }
@@ -251,30 +259,6 @@ declare namespace http {
 
     constructor(meta: EndpointMeta);
   }
-
-  interface DefaultEventEmitterMap {
-    [x: string]: (...args: any[]) => void;
-  }
-
-  interface EventBus<E extends DefaultEventEmitterMap = DefaultEventEmitterMap> extends EventEmitter {
-    emit: <Event extends Extract<keyof E, string>>(event: Event, ...args: Parameters<E[Event]>) => boolean;
-
-    on: <Event extends Extract<keyof E, string>>(event: Event, callback: E[Event]) => this;
-    once: <Event extends Extract<keyof E, string>>(event: Event, callback: E[Event]) => this;
-    addListener: <Event extends Extract<keyof E, string>>(event: Event, callback: E[Event]) => this;
-    prependListener: <Event extends Extract<keyof E, string>>(event: Event, callback: E[Event]) => this;
-    prependOnceListener: <Event extends Extract<keyof E, string>>(event: Event, callback: E[Event]) => this;
-
-    off: <Event extends Extract<keyof E, string>>(event: Event, callback: E[Event]) => this;
-    removeListener: <Event extends Extract<keyof E, string>>(event: Event, callback: E[Event]) => this;
-    removeAllListeners: (event: Extract<keyof E, string>) => this;
-
-    listeners: (event: Extract<keyof E, string>) => Function[];
-    rawListeners: (event: Extract<keyof E, string>) => Function[];
-    listenerCount: (event: Extract<keyof E, string>) => number;
-  }
-
-  class EventBus<E extends DefaultEventEmitterMap = DefaultEventEmitterMap> extends EventEmitter {}
 
   export class HttpServer extends EventBus<http.HttpServerEvents> {
     public options: http.HttpServerOptions;

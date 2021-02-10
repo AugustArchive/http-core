@@ -51,7 +51,6 @@ export default function Route(path: string, method: 'get' | 'post' | 'delete' | 
     if (!target.constructor[ROUTE_SYMBOL])
       target.constructor[ROUTE_SYMBOL] = [];
 
-
     (target.constructor[ROUTE_SYMBOL] as Endpoint[]).push(new Endpoint({
       queryParams: options?.queryParams,
       parameters: options?.parameters,

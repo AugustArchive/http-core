@@ -264,8 +264,10 @@ declare namespace http {
     public options: http.HttpServerOptions;
     public app: ReturnType<typeof express>;
 
+    public addRouter(router: http.Router<this>): this;
     public start(): Promise<void>;
     public close(): void;
+    public use(middleware: ExpressMiddleware): this;
   }
 }
 

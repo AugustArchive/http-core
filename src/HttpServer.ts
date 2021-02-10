@@ -175,7 +175,8 @@ export default class HttpServer extends EventBus<HttpServerEvents> {
   }
 
   use(middleware: ExpressMiddleware) {
-    return this.app.use(middleware.bind(this));
+    this.app.use(middleware.bind(this));
+    return this;
   }
 
   addRouter(r: Router<this>) {

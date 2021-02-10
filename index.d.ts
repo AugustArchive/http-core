@@ -70,8 +70,6 @@ declare namespace http {
   }
 
   interface HttpServerEvents {
-    [x: string]: any; // fuck you
-
     listening(networks: Network[]): void;
     request(props: RequestProps): void;
     debug(message: string): void;
@@ -109,6 +107,8 @@ declare namespace http {
    * This is also an extension to `express.Router`
    */
   export class Router<S extends http.HttpServer = http.HttpServer> {
+    constructor(prefix: string);
+
     /** List of sub-routers chained to this [Router] */
     public subrouters: Collection<string, Router<S>>;
 
@@ -261,6 +261,8 @@ declare namespace http {
   }
 
   export class HttpServer extends EventBus<http.HttpServerEvents> {
+    constructor(options?: http.HttpServerOptions);
+
     public options: http.HttpServerOptions;
     public app: ReturnType<typeof express>;
 

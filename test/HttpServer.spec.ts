@@ -20,14 +20,16 @@
  * SOFTWARE.
  */
 
+import SomeDummyRouter from './routes/SomeDummyRouter';
 import { HttpServer } from '../src';
 import supertest from 'supertest';
-import { join } from 'path';
 
 describe('HttpServer', () => {
   let server!: HttpServer;
   beforeAll(async () => {
-    server = new HttpServer({ routes: join(__dirname, 'routes') });
+    server = new HttpServer();
+
+    server.router(new SomeDummyRouter());
     await server.start();
   });
 

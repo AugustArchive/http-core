@@ -23,7 +23,6 @@
 import { Route, Router, getRouteReferences, HttpServer } from '../src';
 import type { Request, Response } from 'express';
 import supertest from 'supertest';
-import { join } from 'path';
 
 class DummyRouter extends Router {
   constructor() {
@@ -51,9 +50,9 @@ describe('Routing', () => {
 
   beforeAll(async () => {
     router = new DummyRouter();
-    server = new HttpServer({ routes: join(__dirname, 'routes') });
+    server = new HttpServer();
 
-    server.addRouter(owo);
+    server.router(owo);
     await server.start();
   });
 

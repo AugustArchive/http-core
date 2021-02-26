@@ -23,7 +23,7 @@
     "test": "jest --config jest.config.js"
   },
   "dependencies": {
-    "@augu/collections": "1.0.3",
+    "@augu/collections": "1.0.4",
     "@augu/utils": "1.0.3",
     "express": "4.17.1",
     "on-finished": "2.3.0"

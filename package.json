@@ -1,7 +1,7 @@
 {
   "name": "@augu/http",
   "description": "🧶 Simple, powerful http web-framework for Express fit for my needs.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": "August <cutie@floofy.dev>",
   "license": "MIT",
   "repository": "https://github.com/auguwu/http-core",

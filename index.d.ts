@@ -22,9 +22,9 @@
 
 /* eslint-disable @typescript-eslint/ban-types */
 
+import { Request, Response, Express, Router as ExpressRouter, NextFunction } from 'express';
 import { Collection } from '@augu/collections';
 import { EventBus } from '@augu/utils';
-import * as express from 'express';
 
 declare namespace http {
   /** Returns the version of `@augu/http` */
@@ -45,7 +45,7 @@ declare namespace http {
   }
 
   type EndpointRunner<S = http.HttpServer> = (this: S, req: Request, res: Response) => any | Promise<any>;
-  type ExpressMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => void;
+  type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => void;
 
   export interface HttpServerOptions {
     purgeTimeout?: number;
@@ -118,10 +118,10 @@ declare namespace http {
     public prefix: string;
 
     /** Returns the available [express.Router] instance for this [Router] */
-    public get router(): express.Router;
+    public get router(): ExpressRouter;
 
     /** Sets the [express.Router] instance for this [Router] */
-    public set router(r: express.Router);
+    public set router(r: ExpressRouter);
 
     /**
      * Defines an new subrouter of a specific prefix
@@ -263,7 +263,7 @@ declare namespace http {
     constructor(options?: http.HttpServerOptions);
 
     public options: http.HttpServerOptions;
-    public app: ReturnType<typeof express>;
+    public app: Express;
 
     public router(router: http.Router<this>): this;
     public start(): Promise<void>;

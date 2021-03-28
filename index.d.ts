@@ -270,6 +270,11 @@ declare namespace http {
     public close(): void;
     public use(middleware: ExpressMiddleware): this;
   }
+
+  export namespace middleware {
+    export function logging(): ExpressMiddleware;
+    export function headers(): ExpressMiddleware;
+  }
 }
 
 export = http;

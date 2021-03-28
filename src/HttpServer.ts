@@ -20,7 +20,6 @@
  * SOFTWARE.
  */
 
-import { getRouteReferences } from './decorators';
 import { Collection } from '@augu/collections';
 import { EventBus } from '@augu/utils';
 import { headers } from './middleware';
@@ -48,8 +47,6 @@ export interface Network {
 }
 
 interface HttpServerEvents {
-  [x: string]: any; // fuck you
-
   listening(networks: Network[]): void;
   request(props: RequestProperties): void;
   debug(message: string): void;
@@ -172,27 +169,6 @@ export default class HttpServer extends EventBus<HttpServerEvents> {
   }
 
   router(router: Router<this>) {
-    const references = getRouteReferences(router);
-    for (let i = 0; i < references.length; i++) {
-      const endpoint = references[i];
-      this.app[endpoint.method](endpoint.path, async (req, res) => {
-        if (req.method.toLowerCase() !== endpoint.method.toLowerCase())
-          return res.status(405).json({
-            message: `Method '${req.method.toLowerCase()}' on '${endpoint.method.toLowerCase()} ${endpoint.path}' is not allowed`
-          });
-
-        try {
-          await endpoint.run.bind(this)(req, res);
-        } catch(ex) {
-          this.emit('error', ex);
-          return res.status(500).json({
-            message: 'Unexpected error has occured',
-            error: `${ex.name}: ${ex.message}`
-          });
-        }
-      });
-    }
-
     for (const endpoint of router.routes.values()) {
       this.app[endpoint.method](endpoint.path, async (req, res) => {
         if (req.method.toLowerCase() !== endpoint.method.toLowerCase())

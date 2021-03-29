@@ -36,11 +36,7 @@ export default () => {
     next(); // just continue for now
 
     let fullUrl = req.url;
-    const params = req.params !== undefined || req.params !== null ? Object.keys(req.params) : [];
     const queryParams = req.query !== undefined || req.query !== null ? Object.entries(req.query) : [];
-
-    for (let i = 0; i < params.length; i++)
-      fullUrl += `/${params[i]}`;
 
     for (let i = 0; i < queryParams.length; i++) {
       const index = i === 1 ? '?' : '&';
@@ -53,6 +49,7 @@ export default () => {
       const time = calc(start);
 
       this.emit('request', {
+        userAgent: req.headers['user-agent'],
         status: `${res.statusCode} ${STATUS_CODES[res.statusCode]}`,
         method: req.method.toUpperCase(),
         path: req.url,

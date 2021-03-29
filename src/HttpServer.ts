@@ -54,6 +54,7 @@ interface HttpServerEvents {
 }
 
 interface RequestProperties {
+  userAgent?: string;
   status: string;
   method: string;
   path: string;

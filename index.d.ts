@@ -47,7 +47,7 @@ declare namespace http {
   type EndpointRunner<S = http.HttpServer> = (this: S, req: Request, res: Response) => any | Promise<any>;
   type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => void;
 
-  export interface HttpServerOptions {
+  interface HttpServerOptions {
     purgeTimeout?: number;
     middleware?: ExpressMiddleware[];
     host?: string;
@@ -55,12 +55,13 @@ declare namespace http {
     ssl?: HttpSSLCertificates;
   }
 
-  export interface Network {
+  interface Network {
     type: 'network' | 'local' | 'sock';
     host: string;
   }
 
   interface RequestProps {
+    userAgent?: string;
     status: string;
     method: string;
     path: string;
@@ -75,29 +76,11 @@ declare namespace http {
     error(error: Error): void;
   }
 
-  export interface HttpSSLCertificates {
+  interface HttpSSLCertificates {
     cert: string;
     key: string;
     ca?: string;
   }
-
-  /**
-   * Represents a decorator to mark a method as a Function from a `Router` instance
-   * @param path The path to use
-   * @param method The method to use
-   * @param options The options to use
-   */
-  export function Route(
-    path: string,
-    method: 'get' | 'post' | 'put' | 'delete' | 'patch',
-    options?: Omit<EndpointMeta, 'method' | 'run' | 'path'>
-  ): MethodDecorator;
-
-  /**
-   * Returns any references from the [ROUTE_SYMBOL] available
-   * @param target The target class
-   */
-  export function getRouteReferences(target: any): http.Endpoint[];
 
   /**
    * A router class to extend routes to from a specfic prefix. This can be used

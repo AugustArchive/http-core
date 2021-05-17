@@ -27,7 +27,7 @@
     "on-finished": "2.3.0"
   },
   "devDependencies": {
-    "@augu/eslint-config": "2.0.3",
+    "@augu/eslint-config": "2.1.0",
     "@types/express": "4.17.11",
     "@types/node": "14.14.45",
     "@types/on-finished": "2.3.1",

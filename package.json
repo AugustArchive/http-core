@@ -21,7 +21,7 @@
     "lint": "eslint src --ext .ts --fix"
   },
   "dependencies": {
-    "@augu/collections": "1.0.11",
+    "@augu/collections": "1.0.12",
     "@augu/utils": "1.5.3",
     "express": "4.17.1",
     "on-finished": "2.3.0"
